@@ -1,12 +1,11 @@
 import { api } from '@/data/api'
 import { Product } from '@/data/types/product'
 import { formatToCurrency } from '@/utils/format-currency'
+import { Metadata } from 'next'
 import Image from 'next/image'
 
 interface ProductProps {
-  params: {
-    slug: string
-  }
+  params: Promise<{ slug: string }>
 }
 async function getProduct(slug: string): Promise<Product> {
   const response = await api(`/products/${slug}`, {
@@ -18,8 +17,24 @@ async function getProduct(slug: string): Promise<Product> {
   return product
 }
 
+export async function generateMetadata({
+  params,
+}: ProductProps): Promise<Metadata> {
+  const product = await getProduct((await params).slug)
+  return {
+    title: product.title,
+  }
+}
+
+export async function generateStaticParams() {
+  const response = await api('/products/featured')
+  const products: Product[] = await response.json()
+
+  return products.map((product) => ({ slug: product.slug }))
+}
+
 export default async function ProductPage({ params }: ProductProps) {
-  const product = await getProduct(params.slug)
+  const product = await getProduct((await params).slug)
 
   return (
     <div className="relative mx-auto grid max-w-[860px] grid-cols-3">
